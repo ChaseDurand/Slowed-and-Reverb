@@ -4,6 +4,7 @@ import sys
 import pathlib
 import tempfile
 import shutil
+import random
 from distutils.dir_util import copy_tree
 
 
@@ -34,13 +35,16 @@ def effects(input, tmpDirectory):
 
 
 def createVideo(audio):
-    image = "media/background/bg1.jpg"
+    # Create a video file using audio track and images
+    # Get a random background image from background folder
+    backgroundImage = random.choice(
+        list(pathlib.Path("media/background/").rglob('*jpg')))
     videoExtention = ".mov"
     tag = " [Slowed and Reverb]"
     output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
     subprocess.run([
-        "ffmpeg", "-loop", "1", "-y", "-i", image, "-i", audio, "-shortest",
-        "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3", output
+        "ffmpeg", "-loop", "1", "-y", "-i", backgroundImage, "-i", audio,
+        "-shortest", "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3", output
     ])
     return
 
@@ -56,10 +60,6 @@ def validateInput():
         print("No input file provided!")
 
 
-def initilizeTempDir():
-    return tempfile.mkdtemp()
-
-
 def copyExports(tmpDir, input):
     # Copy completed audio and video exports from temp directory to input file location
     destinationDir = str((pathlib.Path(input)).parents[0])
@@ -67,20 +67,11 @@ def copyExports(tmpDir, input):
     return
 
 
-def closeTempDir(tmpDir):
-    shutil.rmtree(tmpDir)
-    return
-
-
 if __name__ == '__main__':
     print("Starting up:")
-    tmpDirectory = initilizeTempDir()
+    tmpDirectory = tempfile.mkdtemp()
     inputFile = validateInput()
     outputAudio = effects(inputFile, tmpDirectory)
     createVideo(outputAudio)
-    #TODO Get file sample rate
-    #TODO Select art
-    #TODO Generate video
-    #TODO Export
     copyExports(tmpDirectory, inputFile)
-    closeTempDir(tmpDirectory)
+    shutil.rmtree(tmpDirectory)
