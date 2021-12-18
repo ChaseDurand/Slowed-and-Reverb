@@ -10,27 +10,38 @@ from distutils.dir_util import copy_tree
 
 def effects(input, tmpDirectory):
     # Apply resampling and convolution reverb to audio file
-    # Because this uses filter and filter_complex, need to be done in 2 separate ffmpeg processes
-    # Resample to intermediate file, then apply reverb. Delete intermediate file.
+    # Because this uses filter and filter_complex, effects need to be done in 2 separate ffmpeg processes
+    # Resample to 44100 to ensure
     # Append output file with tag.
     pathInput = pathlib.Path(input)
     inputName = pathInput.stem
     extention = pathInput.suffix
-    tmpName = " Slowed Only"
+    tmpName1 = " Resampled"
+    tmpName2 = " Slowed"
     tag = " [Slowed and Reverb]"
-    intermediateAudio = pathlib.Path(tmpDirectory,
-                                     inputName + tmpName + extention)
+    speed = 0.73
+    sampleRate = round(44100 * speed)
+    sampleRateCommand = "asetrate=" + str(sampleRate)
+    intermediateAudio1 = pathlib.Path(tmpDirectory,
+                                      inputName + tmpName1 + extention)
+    intermediateAudio2 = pathlib.Path(tmpDirectory,
+                                      inputName + tmpName2 + extention)
     finalAudio = pathlib.Path(tmpDirectory, inputName + tag + extention)
-    #TODO determine sample rate as multiple of input file rate, not fixed rate
+    #TODO figure out how to determine this to skip in 99% of situations
+    subprocess.run(["ffmpeg", "-i", input, "-ar", "44100",
+                    intermediateAudio1])  # Convert input file to 44100Hz
     subprocess.run([
-        "ffmpeg", "-i", input, "-filter:a", "asetrate=32000", intermediateAudio
-    ])
+        "ffmpeg", "-i", input, "-filter:a", sampleRateCommand, "-ar", "44100",
+        intermediateAudio2
+    ])  # Slow audio and resample to 44100Hz
     subprocess.run([
-        "ffmpeg", "-i", intermediateAudio, "-i", "media/impulse.wav",
+        "ffmpeg", "-i", intermediateAudio2, "-i", "media/impulse.wav",
         "-filter_complex", "[0] [1] afir=dry=10:wet=10", finalAudio
-    ])
-    intermediateAudio.unlink()
-    #TODO resample audio to original sample rate
+    ])  # Apply convolution reverb
+
+    #Delete intermediate files
+    intermediateAudio1.unlink()
+    intermediateAudio2.unlink()
     return finalAudio
 
 
