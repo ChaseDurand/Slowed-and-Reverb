@@ -15,6 +15,8 @@ def effects(input):
     tmpName = uuid.uuid4().hex
     tmpFileLocation = tempfile.mkdtemp()
     tmpPath = pathlib.Path(tmpFileLocation, tmpName + extention)
+    tmpFinal = pathlib.Path(tmpFileLocation,
+                            tmpName + " [Slowed and Reverb]" + extention)
     outputPath = pathlib.Path(fileLocation,
                               inputName + " [Slowed and Reverb]" + extention)
 
@@ -25,8 +27,9 @@ def effects(input):
     #TODO write to temp file then copy on completion
     subprocess.run([
         "ffmpeg", "-i", tmpPath, "-i", "impulse.wav", "-filter_complex",
-        "[0] [1] afir=dry=10:wet=10", outputPath
+        "[0] [1] afir=dry=10:wet=10", tmpFinal
     ])
+    shutil.copy(tmpFinal, outputPath)
     #TODO resample audio to original sample rate
     shutil.rmtree(tmpFileLocation)
     return
