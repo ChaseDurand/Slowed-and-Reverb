@@ -1,41 +1,53 @@
+from os import pardir
 import subprocess
 import sys
 import pathlib
-import uuid
 import tempfile
 import shutil
+from distutils.dir_util import copy_tree
 
 
-def effects(input):
-    #TODO basic security of subprocess
+def effects(input, tmpDirectory):
+    # Apply resampling and convolution reverb to audio file
+    # Because this uses filter and filter_complex, need to be done in 2 separate ffmpeg processes
+    # Resample to intermediate file, then apply reverb. Delete intermediate file.
+    # Append output file with tag.
     pathInput = pathlib.Path(input)
-    fileLocation = pathInput.parents[0]
     inputName = pathInput.stem
     extention = pathInput.suffix
-    tmpName = uuid.uuid4().hex
-    tmpFileLocation = tempfile.mkdtemp()
-    tmpPath = pathlib.Path(tmpFileLocation, tmpName + extention)
-    tmpFinal = pathlib.Path(tmpFileLocation,
-                            tmpName + " [Slowed and Reverb]" + extention)
-    outputPath = pathlib.Path(fileLocation,
-                              inputName + " [Slowed and Reverb]" + extention)
-
-    #TODO consolidate these processes
+    tmpName = " Slowed Only"
+    tag = " [Slowed and Reverb]"
+    intermediateAudio = pathlib.Path(tmpDirectory,
+                                     inputName + tmpName + extention)
+    finalAudio = pathlib.Path(tmpDirectory, inputName + tag + extention)
     #TODO determine sample rate as multiple of input file rate, not fixed rate
-    subprocess.run(
-        ["ffmpeg", "-i", input, "-filter:a", "asetrate=32000", tmpPath])
-    #TODO write to temp file then copy on completion
     subprocess.run([
-        "ffmpeg", "-i", tmpPath, "-i", "impulse.wav", "-filter_complex",
-        "[0] [1] afir=dry=10:wet=10", tmpFinal
+        "ffmpeg", "-i", input, "-filter:a", "asetrate=32000", intermediateAudio
     ])
-    shutil.copy(tmpFinal, outputPath)
+    subprocess.run([
+        "ffmpeg", "-i", intermediateAudio, "-i", "media/impulse.wav",
+        "-filter_complex", "[0] [1] afir=dry=10:wet=10", finalAudio
+    ])
+    intermediateAudio.unlink()
     #TODO resample audio to original sample rate
-    shutil.rmtree(tmpFileLocation)
+    return finalAudio
+
+
+def createVideo(audio):
+    image = "media/background/bg1.jpg"
+    videoExtention = ".mov"
+    tag = " [Slowed and Reverb]"
+    output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
+    subprocess.run([
+        "ffmpeg", "-loop", "1", "-y", "-i", image, "-i", audio, "-shortest",
+        "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3", output
+    ])
     return
 
 
 def validateInput():
+    # Ensure file was passed as input
+    # Check if input file is valid audio file
     try:
         fileInput = sys.argv[1]
         #TODO validate mp3
@@ -44,10 +56,31 @@ def validateInput():
         print("No input file provided!")
 
 
+def initilizeTempDir():
+    return tempfile.mkdtemp()
+
+
+def copyExports(tmpDir, input):
+    # Copy completed audio and video exports from temp directory to input file location
+    destinationDir = str((pathlib.Path(input)).parents[0])
+    copy_tree(tmpDir, destinationDir)
+    return
+
+
+def closeTempDir(tmpDir):
+    shutil.rmtree(tmpDir)
+    return
+
+
 if __name__ == '__main__':
     print("Starting up:")
-    outputAudio = effects(validateInput())
+    tmpDirectory = initilizeTempDir()
+    inputFile = validateInput()
+    outputAudio = effects(inputFile, tmpDirectory)
+    createVideo(outputAudio)
     #TODO Get file sample rate
     #TODO Select art
     #TODO Generate video
     #TODO Export
+    copyExports(tmpDirectory, inputFile)
+    closeTempDir(tmpDirectory)
