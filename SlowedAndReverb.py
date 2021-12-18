@@ -6,69 +6,72 @@ import tempfile
 import shutil
 import random
 from distutils.dir_util import copy_tree
+import sox
 
 
 def effects(input, tmpDirectory):
     # Apply resampling and convolution reverb to audio file
     # Because this uses filter and filter_complex, effects need to be done in 2 separate ffmpeg processes
-    # Resample to 44100 to ensure
     # Append output file with tag.
     pathInput = pathlib.Path(input)
     inputName = pathInput.stem
     extention = pathInput.suffix
-    tmpName1 = " Resampled"
-    tmpName2 = " Slowed"
+    tmpName = " Slowed"
     tag = " [Slowed and Reverb]"
+    inputSampleRate = sox.file_info.sample_rate(input)
+    inputSampleRateCommand = str(round(inputSampleRate))
+    print(inputSampleRateCommand)
     speed = 0.73
-    sampleRate = round(44100 * speed)
-    sampleRateCommand = "asetrate=" + str(sampleRate)
-    intermediateAudio1 = pathlib.Path(tmpDirectory,
-                                      inputName + tmpName1 + extention)
-    intermediateAudio2 = pathlib.Path(tmpDirectory,
-                                      inputName + tmpName2 + extention)
+    resampleRate = round(inputSampleRate * speed)
+    sampleRateCommand = "asetrate=" + str(resampleRate)
+    intermediateAudio = pathlib.Path(tmpDirectory,
+                                     inputName + tmpName + extention)
     finalAudio = pathlib.Path(tmpDirectory, inputName + tag + extention)
-    #TODO figure out how to determine this to skip in 99% of situations
-    subprocess.run(["ffmpeg", "-i", input, "-ar", "44100",
-                    intermediateAudio1])  # Convert input file to 44100Hz
     subprocess.run([
-        "ffmpeg", "-i", input, "-filter:a", sampleRateCommand, "-ar", "44100",
-        intermediateAudio2
-    ])  # Slow audio and resample to 44100Hz
+        "ffmpeg", "-i", input, "-filter:a", sampleRateCommand, "-ar",
+        inputSampleRateCommand, intermediateAudio
+    ])  # Slow audio and resample to original sample rate
     subprocess.run([
-        "ffmpeg", "-i", intermediateAudio2, "-i", "media/impulse.wav",
+        "ffmpeg", "-i", intermediateAudio, "-i", "media/impulse.wav",
         "-filter_complex", "[0] [1] afir=dry=10:wet=10", finalAudio
     ])  # Apply convolution reverb
 
     #Delete intermediate files
-    intermediateAudio1.unlink()
-    intermediateAudio2.unlink()
+    intermediateAudio.unlink()
     return finalAudio
 
 
-def createVideo(audio):
+def createVideo(audio, tmpDirectory):
     # Create a video file using audio track and images
     # Get a random background image from background folder
     backgroundImage = random.choice(
         list(pathlib.Path("media/background/").rglob('*jpg')))
+    backgroundImageBlur = pathlib.Path(tmpDirectory,
+                                       "backgroundImageBlur" + ".jpg")
+    subprocess.run([
+        "ffmpeg", "-i", backgroundImage, "-vf", "rgbashift=rh=6:bh=-5:gv=-1",
+        backgroundImageBlur
+    ])
     videoExtention = ".mov"
     tag = " [Slowed and Reverb]"
     output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
     subprocess.run([
-        "ffmpeg", "-loop", "1", "-y", "-i", backgroundImage, "-i", audio,
+        "ffmpeg", "-loop", "1", "-y", "-i", backgroundImageBlur, "-i", audio,
         "-shortest", "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3", output
     ])
+    #Delete blurred background image
+    backgroundImageBlur.unlink()
     return
 
 
 def validateInput():
     # Ensure file was passed as input
-    # Check if input file is valid audio file
     try:
         fileInput = sys.argv[1]
-        #TODO validate mp3
         return fileInput
     except IndexError:
         print("No input file provided!")
+        exit()
 
 
 def copyExports(tmpDir, input):
@@ -79,10 +82,12 @@ def copyExports(tmpDir, input):
 
 
 if __name__ == '__main__':
-    print("Starting up:")
+    print("Starting up.")
     tmpDirectory = tempfile.mkdtemp()
     inputFile = validateInput()
     outputAudio = effects(inputFile, tmpDirectory)
-    createVideo(outputAudio)
+    createVideo(outputAudio, tmpDirectory)
     copyExports(tmpDirectory, inputFile)
+    print("Audio and video files created! Cleaning up.")
     shutil.rmtree(tmpDirectory)
+    print("Cleanup complete.")
