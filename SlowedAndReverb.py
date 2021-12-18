@@ -2,6 +2,8 @@ import subprocess
 import sys
 import pathlib
 import uuid
+import tempfile
+import shutil
 
 
 def effects(input):
@@ -11,18 +13,22 @@ def effects(input):
     inputName = pathInput.stem
     extention = pathInput.suffix
     tmpName = uuid.uuid4().hex
-    tmpPath = pathlib.Path(fileLocation, tmpName + extention)
+    tmpFileLocation = tempfile.mkdtemp()
+    tmpPath = pathlib.Path(tmpFileLocation, tmpName + extention)
     outputPath = pathlib.Path(fileLocation,
                               inputName + " [Slowed and Reverb]" + extention)
-    print(tmpPath)
+
     #TODO consolidate these processes
+    #TODO determine sample rate as multiple of input file rate, not fixed rate
     subprocess.run(
         ["ffmpeg", "-i", input, "-filter:a", "asetrate=32000", tmpPath])
+    #TODO write to temp file then copy on completion
     subprocess.run([
         "ffmpeg", "-i", tmpPath, "-i", "impulse.wav", "-filter_complex",
         "[0] [1] afir=dry=10:wet=10", outputPath
     ])
-    tmpPath.unlink()
+    #TODO resample audio to original sample rate
+    shutil.rmtree(tmpFileLocation)
     return
 
 
@@ -38,9 +44,7 @@ def validateInput():
 if __name__ == '__main__':
     print("Starting up:")
     outputAudio = effects(validateInput())
-    # slow(validateInput)
     #TODO Get file sample rate
-    #TODO Get file metadata
     #TODO Select art
     #TODO Generate video
     #TODO Export
