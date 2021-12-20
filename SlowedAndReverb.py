@@ -1,4 +1,3 @@
-from logging import error
 import subprocess
 import sys
 import pathlib
@@ -49,31 +48,39 @@ def createVideo(audio, tmpDirectory):
         list(pathlib.Path("media/background/").rglob('*jpg')))
     backgroundImageBlur = pathlib.Path(tmpDirectory,
                                        "backgroundImageBlur" + ".jpg")
-    grain = "media/grain/VHS Rewind Grain Overlay Effect - freestockfootagearchive.com.mp4"
+    grain0 = "media/grain/grain0 - CRT TV Static Noise Loop #1 [CC BY 4.0] In-Camera.mp4"
+    grain2 = "media/grain/grain2 - VHS Rewind Grain Overlay Effect - freestockfootagearchive.com.mp4"
     subprocess.run([
         "ffmpeg", "-i", backgroundImage, "-vf",
         'scale=854:480:force_original_aspect_ratio=increase,crop=854:480',
         backgroundImageBlur
     ])
-    #TODO add moving noise
     videoExtention = ".mov"
     tag = " [Slowed and Reverb]"
-    intermediateVideo = pathlib.Path(
-        audio.parents[0], audio.stem + " intermediate" + tag + videoExtention)
+    intermediateVideo1 = pathlib.Path(
+        audio.parents[0], audio.stem + " intermediate1" + tag + videoExtention)
+    intermediateVideo2 = pathlib.Path(
+        audio.parents[0], audio.stem + " intermediate2" + tag + videoExtention)
     output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
     subprocess.run([
         "ffmpeg", "-loop", "1", "-y", "-i", backgroundImageBlur, "-i", audio,
         "-shortest", "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3",
-        intermediateVideo
+        intermediateVideo1
     ])
     subprocess.run([
-        "ffmpeg", "-i", intermediateVideo, "-i", grain, "-filter_complex",
-        "[1:v]colorkey=0x000000:0.3:0.7[ckout];[0:v][ckout]overlay[out]",
-        "-map", "[out]", output
+        "ffmpeg", "-i", intermediateVideo1, "-i", grain2, "-filter_complex",
+        "[1:v]colorkey=0x000000:0.3:0.5[ckout];[0:v][ckout]overlay[out]",
+        "-map", "0:a", "-c:a", "copy", "-map", "[out]", intermediateVideo2
+    ])
+    subprocess.run([
+        "ffmpeg", "-i", intermediateVideo2, "-i", grain0, "-filter_complex",
+        "[1:v]colorkey=0x000000:0.05:0.3[ckout];[0:v][ckout]overlay[out]",
+        "-map", "0:a", "-c:a", "copy", "-map", "[out]", output
     ])
     #Delete blurred background image
     backgroundImageBlur.unlink()
-    intermediateVideo.unlink()
+    intermediateVideo1.unlink()
+    intermediateVideo2.unlink()
     return
 
 
