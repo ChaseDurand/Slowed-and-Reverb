@@ -1,4 +1,4 @@
-from os import pardir
+from logging import error
 import subprocess
 import sys
 import pathlib
@@ -33,9 +33,10 @@ def effects(input, tmpDirectory):
     ])  # Slow audio and resample to original sample rate
     subprocess.run([
         "ffmpeg", "-i", intermediateAudio, "-i", "media/impulse.wav",
-        "-filter_complex", "[0] [1] afir=dry=10:wet=10", finalAudio
+        "-filter_complex",
+        "[0] [1] afir=dry=10:wet=10 [reverb]; [0] [reverb] amix=inputs=2:weights=10 7",
+        finalAudio
     ])  # Apply convolution reverb
-
     #Delete intermediate files
     intermediateAudio.unlink()
     return finalAudio
@@ -48,19 +49,31 @@ def createVideo(audio, tmpDirectory):
         list(pathlib.Path("media/background/").rglob('*jpg')))
     backgroundImageBlur = pathlib.Path(tmpDirectory,
                                        "backgroundImageBlur" + ".jpg")
+    grain = "media/grain/VHS Rewind Grain Overlay Effect - freestockfootagearchive.com.mp4"
     subprocess.run([
-        "ffmpeg", "-i", backgroundImage, "-vf", "rgbashift=rh=6:bh=-5:gv=-1",
+        "ffmpeg", "-i", backgroundImage, "-vf",
+        'scale=854:480:force_original_aspect_ratio=increase,crop=854:480',
         backgroundImageBlur
     ])
+    #TODO add moving noise
     videoExtention = ".mov"
     tag = " [Slowed and Reverb]"
+    intermediateVideo = pathlib.Path(
+        audio.parents[0], audio.stem + " intermediate" + tag + videoExtention)
     output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
     subprocess.run([
         "ffmpeg", "-loop", "1", "-y", "-i", backgroundImageBlur, "-i", audio,
-        "-shortest", "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3", output
+        "-shortest", "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3",
+        intermediateVideo
+    ])
+    subprocess.run([
+        "ffmpeg", "-i", intermediateVideo, "-i", grain, "-filter_complex",
+        "[1:v]colorkey=0x000000:0.3:0.7[ckout];[0:v][ckout]overlay[out]",
+        "-map", "[out]", output
     ])
     #Delete blurred background image
     backgroundImageBlur.unlink()
+    intermediateVideo.unlink()
     return
 
 
