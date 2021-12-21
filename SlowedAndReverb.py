@@ -46,41 +46,74 @@ def createVideo(audio, tmpDirectory):
     # Get a random background image from background folder
     backgroundImage = random.choice(
         list(pathlib.Path("media/background/").rglob('*jpg')))
-    backgroundImageBlur = pathlib.Path(tmpDirectory,
+    backgroundImageCrop = pathlib.Path(tmpDirectory,
                                        "backgroundImageBlur" + ".jpg")
-    grain0 = "media/grain/grain0 - CRT TV Static Noise Loop #1 [CC BY 4.0] In-Camera.mp4"
+    grain1 = "media/grain/grain1 - CRT TV Static Noise Loop #1 [CC BY 4.0] In-Camera.mp4"
     grain2 = "media/grain/grain2 - VHS Rewind Grain Overlay Effect - freestockfootagearchive.com.mp4"
+    #Crop image to target output size
     subprocess.run([
         "ffmpeg", "-i", backgroundImage, "-vf",
         'scale=854:480:force_original_aspect_ratio=increase,crop=854:480',
-        backgroundImageBlur
+        backgroundImageCrop
     ])
-    videoExtention = ".mov"
+    videoExtention = ".mp4"
     tag = " [Slowed and Reverb]"
     intermediateVideo1 = pathlib.Path(
         audio.parents[0], audio.stem + " intermediate1" + tag + videoExtention)
     intermediateVideo2 = pathlib.Path(
         audio.parents[0], audio.stem + " intermediate2" + tag + videoExtention)
+    intermediateVideo3 = pathlib.Path(
+        audio.parents[0], audio.stem + " intermediate3" + tag + videoExtention)
+    intermediateVideo4 = pathlib.Path(
+        audio.parents[0], audio.stem + " intermediate4" + tag + videoExtention)
+    intermediateVideo5 = pathlib.Path(
+        audio.parents[0], audio.stem + " intermediate5" + tag + videoExtention)
     output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
+    #Loop image to be length of audio
     subprocess.run([
-        "ffmpeg", "-loop", "1", "-y", "-i", backgroundImageBlur, "-i", audio,
+        "ffmpeg", "-loop", "1", "-y", "-i", backgroundImageCrop, "-i", audio,
         "-shortest", "-acodec", "copy", "-vcodec", "mjpeg", "-q:v", "3",
         intermediateVideo1
     ])
+    #Apply grain2 effect
     subprocess.run([
-        "ffmpeg", "-i", intermediateVideo1, "-i", grain2, "-filter_complex",
-        "[1:v]colorkey=0x000000:0.3:0.5[ckout];[0:v][ckout]overlay[out]",
+        "ffmpeg", "-i", intermediateVideo1, "-stream_loop", "-1", "-y", "-i",
+        grain2, "-shortest", "-filter_complex",
+        "[1:v]colorkey=0x000000:0.3:0.7[ckout];[0:v][ckout]overlay[out]",
         "-map", "0:a", "-c:a", "copy", "-map", "[out]", intermediateVideo2
     ])
+    #Apply grain1 effect
     subprocess.run([
-        "ffmpeg", "-i", intermediateVideo2, "-i", grain0, "-filter_complex",
-        "[1:v]colorkey=0x000000:0.05:0.3[ckout];[0:v][ckout]overlay[out]",
-        "-map", "0:a", "-c:a", "copy", "-map", "[out]", output
+        "ffmpeg", "-i", intermediateVideo2, "-stream_loop", "-1", "-y", "-i",
+        grain1, "-shortest", "-filter_complex",
+        "[1:v]colorkey=0x000000:0.2:0.8[ckout];[0:v][ckout]overlay[out]",
+        "-map", "0:a", "-c:a", "copy", "-map", "[out]", intermediateVideo3
     ])
-    #Delete blurred background image
-    backgroundImageBlur.unlink()
+    #Apply ripple effect
+    subprocess.run([
+        "ffmpeg", "-i", intermediateVideo3, "-f", "lavfi", "-i",
+        "nullsrc=s=854x480,lutrgb=128:128:128", "-f", "lavfi", "-i",
+        "nullsrc=s=854x480,geq='r=128+4*sin(2*PI*X/1200+T):g=128+4*sin(2*PI*X/1200+T):b=128+4*sin(2*PI*X/1200+T)'",
+        "-lavfi", "[0][1][2]displace", intermediateVideo4
+    ])
+    #Apply wave effect
+    subprocess.run([
+        "ffmpeg", "-i", intermediateVideo4, "-f", "lavfi", "-i",
+        "nullsrc=854x480,geq='r=128+4*(sin(sqrt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2))/920*2*PI+T)):g=128+4*(sin(sqrt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2))/920*2*PI+T)):b=128+4*(sin(sqrt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2))/920*2*PI+T))'",
+        "-lavfi", "[1]split[x][y],[0][x][y]displace", intermediateVideo5
+    ])
+    #Apply chromatic distortion
+    subprocess.run([
+        "ffmpeg", "-i", intermediateVideo5, "-vf",
+        "rgbashift=rh=3:bh=-4:gv=-1", output
+    ])
+    #Delete intermediate files
+    backgroundImageCrop.unlink()
     intermediateVideo1.unlink()
     intermediateVideo2.unlink()
+    intermediateVideo3.unlink()
+    intermediateVideo4.unlink()
+    intermediateVideo5.unlink()
     return
 
 
