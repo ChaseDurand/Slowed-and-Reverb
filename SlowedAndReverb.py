@@ -16,7 +16,7 @@ def effects(input, tmpDirectory):
     inputName = pathInput.stem
     extention = pathInput.suffix
     tmpName = " Slowed"
-    tag = " [Slowed and Reverb]"
+    tag = " [ s l o w e d   a n d   R e v e r b ]"
     inputSampleRate = sox.file_info.sample_rate(input)
     inputSampleRateCommand = str(round(inputSampleRate))
     print(inputSampleRateCommand)
@@ -57,18 +57,17 @@ def createVideo(audio, tmpDirectory):
         backgroundImageCrop
     ])
     videoExtention = ".mp4"
-    tag = " [Slowed and Reverb]"
     intermediateVideo1 = pathlib.Path(
-        audio.parents[0], audio.stem + " intermediate1" + tag + videoExtention)
+        audio.parents[0], audio.stem + " intermediate1" + videoExtention)
     intermediateVideo2 = pathlib.Path(
-        audio.parents[0], audio.stem + " intermediate2" + tag + videoExtention)
+        audio.parents[0], audio.stem + " intermediate2" + videoExtention)
     intermediateVideo3 = pathlib.Path(
-        audio.parents[0], audio.stem + " intermediate3" + tag + videoExtention)
+        audio.parents[0], audio.stem + " intermediate3" + videoExtention)
     intermediateVideo4 = pathlib.Path(
-        audio.parents[0], audio.stem + " intermediate4" + tag + videoExtention)
+        audio.parents[0], audio.stem + " intermediate4" + videoExtention)
     intermediateVideo5 = pathlib.Path(
-        audio.parents[0], audio.stem + " intermediate5" + tag + videoExtention)
-    output = pathlib.Path(audio.parents[0], audio.stem + tag + videoExtention)
+        audio.parents[0], audio.stem + " intermediate5" + videoExtention)
+    output = pathlib.Path(audio.parents[0], audio.stem + videoExtention)
     #Loop image to be length of audio
     subprocess.run([
         "ffmpeg", "-loop", "1", "-y", "-i", backgroundImageCrop, "-i", audio,
