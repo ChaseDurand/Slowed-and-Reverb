@@ -21,6 +21,8 @@ python3 SlowedAndReverb.py /path/to/audio.mp3
 
 
 ## Examples
-<img src="/.github/sample3.png" alt="sample3" width="500"/>
-<img src="/.github/sample1.png" alt="sample1" width="500"/>
-<img src="/.github/sample2.png" alt="sample2" width="500"/>
+https://user-images.githubusercontent.com/50851884/147126853-30cebc19-0857-4856-9a05-7cf0b3fcc2d8.mov
+
+https://user-images.githubusercontent.com/50851884/147129970-f5dd341f-15e5-46db-aba3-aa6114b4c188.mov
+
+https://user-images.githubusercontent.com/50851884/147132187-3b4d6224-83ff-4964-9338-57261479ad69.mov
