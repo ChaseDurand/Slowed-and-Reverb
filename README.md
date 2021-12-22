@@ -1,4 +1,5 @@
-# 【 ｓｌｏｗｅｄ　ａｎｄ　ｒｅｖｅｒｂ】
+![【 ｓｌｏｗｅｄ　ａｎｄ　ｒｅｖｅｒｂ】](https://user-images.githubusercontent.com/50851884/147165754-ec666b22-5b65-4648-9006-6bd2dc9bf929.png)
+
 >_"Creating uninspired edits has never been easier!"_
 
 Slowed and Reverb is a utility for easily creating aesthetic audio+visual edits.
