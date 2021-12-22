@@ -4,7 +4,7 @@
 
 Slowed and Reverb is a utility for easily creating aesthetic audio+visual edits.
 
-For the audio, the input track is slowed+pitched and then convoluted with an impulse response. For the video, a random image from [/media/background](/media/background) is combined with CRT/VHS-esque grain layers, chromatic aberration, and ripple effects.
+The input track is slowed+pitched and then convoluted with an impulse response. A random image from [/media/background](/media/background) is combined with CRT/VHS-esque grain layers, chromatic aberration, and ripple effects.
 
 ## Requirements
 * Python 3.5+
