@@ -4,7 +4,7 @@
 Slowed and Reverb is a utility for easily creating aesthetic audio+visual edits.
 
 ## Usage
-Pass an audio file as an argument. Output mp3 and mp4 files will export to same location as input file.
+Pass an audio file as an argument. MP3 and MP4 files will export to same location as input file.
 
 `python3 SlowedAndReverb.py /path/to/audio.mp3`
 
