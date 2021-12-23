@@ -8,7 +8,17 @@ from distutils.dir_util import copy_tree
 import sox
 
 
-def effects(input, tmpDirectory):
+def validateInput():
+    # Ensure file was passed as input
+    try:
+        fileInput = sys.argv[1]
+        return fileInput
+    except IndexError:
+        print("No input file provided!")
+        exit()
+
+
+def applyAudioEffects(input, tmpDirectory):
     # Apply resampling and convolution reverb to audio file
     # Because this uses filter and filter_complex, effects need to be done in 2 separate ffmpeg processes
     # Append output file with tag.
@@ -116,16 +126,6 @@ def createVideo(audio, tmpDirectory):
     return
 
 
-def validateInput():
-    # Ensure file was passed as input
-    try:
-        fileInput = sys.argv[1]
-        return fileInput
-    except IndexError:
-        print("No input file provided!")
-        exit()
-
-
 def copyExports(tmpDir, input):
     # Copy completed audio and video exports from temp directory to input file location
     destinationDir = str((pathlib.Path(input)).parents[0])
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     print("Starting up.")
     tmpDirectory = tempfile.mkdtemp()
     inputFile = validateInput()
-    outputAudio = effects(inputFile, tmpDirectory)
+    outputAudio = applyAudioEffects(inputFile, tmpDirectory)
     createVideo(outputAudio, tmpDirectory)
     copyExports(tmpDirectory, inputFile)
     print("Audio and video files created! Cleaning up.")
