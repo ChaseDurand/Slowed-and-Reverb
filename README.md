@@ -8,7 +8,7 @@ The input track is slowed+pitched and then convoluted with an impulse response. 
 
 ## Requirements
 * Python 3.5+
-* ffmpeg
+* [ffmpeg](https://www.ffmpeg.org/download.html)
 * sox
 
 
